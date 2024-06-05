@@ -1,16 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"strings"
-
-	// Uncomment this block to pass the first stage
 	"net"
 	"os"
+	"strings"
 )
 
 func main() {
-	// Uncomment this block to pass the first stage
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
 		fmt.Println("Failed to bind to port 4221")
@@ -32,25 +30,46 @@ func main() {
 
 	req := string(buf)
 	path := parsePath(req)
-	res := makeResponseFromPath(path)
+	res := makeResponseFromPath(path, req)
 	conn.Write([]byte(res))
 	fmt.Println("Server Stop")
+}
+
+func parseUserAgent(req string) (string, error) {
+	lines := strings.Split(req, "\r\n")
+	for _, value := range lines {
+		fmt.Println(value)
+		header := strings.Split(value, " ")
+		key := header[0]
+		val := header[1]
+		if key == "User-Agent:" {
+			return val, nil
+		}
+	}
+
+	return "error", errors.New("User-Agent Header Not Found")
 }
 
 func parsePath(req string) string {
 	lines := strings.Split(req, "\r\n")
 	path := strings.Split(lines[0], " ")[1]
-	fmt.Println(path)
 	return path
 }
 
-func makeResponseFromPath(path string) string {
+func makeResponseFromPath(path string, req string) string {
 	var res string
 	if path == "/" {
 		res = "HTTP/1.1 200 OK\r\n\r\n"
 	} else if strings.Split(path, "/")[1] == "echo" {
 		message := strings.Split(path, "/")[2]
 		res = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)
+	} else if path == "/user-agent" {
+		agent, err := parseUserAgent(req)
+		if err != nil {
+			res = "HTTP/1.1 400 Bad Request\r\n\r\n"
+		} else {
+			res = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(agent), agent)
+		}
 	} else {
 		res = "HTTP/1.1 404 Not Found\r\n\r\n"
 	}
