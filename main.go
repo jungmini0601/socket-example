@@ -40,6 +40,7 @@ func main() {
 func parsePath(req string) string {
 	lines := strings.Split(req, "\r\n")
 	path := strings.Split(lines[0], " ")[1]
+	fmt.Println(path)
 	return path
 }
 
@@ -47,6 +48,9 @@ func makeResponseFromPath(path string) string {
 	var res string
 	if path == "/" {
 		res = "HTTP/1.1 200 OK\r\n\r\n"
+	} else if strings.Split(path, "/")[1] == "echo" {
+		message := strings.Split(path, "/")[2]
+		res = fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(message), message)
 	} else {
 		res = "HTTP/1.1 404 Not Found\r\n\r\n"
 	}
