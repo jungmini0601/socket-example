@@ -14,16 +14,24 @@ func main() {
 		fmt.Println("Failed to bind to port 4221")
 		os.Exit(1)
 	}
-	// 커넥션 받을 때 까지 대기
-	conn, err := l.Accept()
-	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
-		os.Exit(1)
-	}
 
+	for {
+		conn, err := l.Accept()
+
+		if err != nil {
+			fmt.Println("Error accepting connection: ", err.Error())
+			os.Exit(1)
+		}
+
+		go handleConnection(conn)
+	}
+}
+
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
 	// HTTP Parse
 	buf := make([]byte, 1024)
-	_, err = conn.Read(buf)
+	_, err := conn.Read(buf)
 	if err != nil {
 		fmt.Println("Error acceptiong connection: ", err)
 	}
@@ -32,7 +40,6 @@ func main() {
 	path := parsePath(req)
 	res := makeResponseFromPath(path, req)
 	conn.Write([]byte(res))
-	fmt.Println("Server Stop")
 }
 
 func parseUserAgent(req string) (string, error) {
